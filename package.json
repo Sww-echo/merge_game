@@ -1,0 +1,17 @@
+{
+  "name": "suika-game",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "service": "node server.js",
+    "start": "node server.js",
+    "check": "node --check server.js && node --check src/main.js"
+  },
+  "devDependencies": {
+    "vite": "^7.1.5"
+  }
+}
