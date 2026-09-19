@@ -19,6 +19,7 @@ const elements = {
   sideHighscore: document.getElementById('side-highscore'),
   sideNextFruit: document.getElementById('side-next-fruit'),
   sideNextFruitName: document.getElementById('side-next-fruit-name'),
+  celebrationPreviewButton: document.getElementById('celebration-preview-button'),
   scoreSaveStatus: document.getElementById('score-save-status'),
   leaderboard: document.getElementById('leaderboard'),
   difficulty: document.getElementById('game-difficulty'),

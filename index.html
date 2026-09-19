@@ -67,6 +67,14 @@
     #game-canvas::before { position: absolute; inset: 0; z-index: 2; background: #f8f8f5; content: ''; pointer-events: none; }
     #game-canvas::after { position: absolute; top: 37%; right: 0; left: 0; z-index: 2; color: var(--ink); content: '合成伟子 / 01\A\A从旺子一路合成到伟子'; font-size: 21px; font-weight: 900; line-height: 1.45; text-align: center; white-space: pre; pointer-events: none; }
     #game-canvas.is-playing::before, #game-canvas.is-playing::after { opacity: 0; }
+    @keyframes celebration-shake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-4px, 2px) rotate(-0.35deg); }
+      40% { transform: translate(4px, -2px) rotate(0.35deg); }
+      60% { transform: translate(-3px, -1px) rotate(-0.25deg); }
+      80% { transform: translate(3px, 1px) rotate(0.25deg); }
+    }
+    #game-canvas.celebrating { animation: celebration-shake 150ms steps(2, end) infinite; box-shadow: 0 0 0 7px rgba(255, 230, 0, 0.24), 0 0 34px rgba(213, 0, 249, 0.46), 0 10px 26px rgba(32, 33, 36, 0.12); }
 
     #game-start-button { position: absolute; top: 75%; left: 10%; z-index: 3; display: none; width: 80%; height: 52px; padding: 0; cursor: pointer; color: var(--paper); background: var(--ink); border: 0; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; }
     #game-start-button::after { content: '开始游戏'; }
@@ -106,6 +114,10 @@
     .next-fruit-card img { width: 42px; height: 42px; padding: 4px; background: var(--paper); border-radius: 50%; }
     .next-fruit-card span { display: block; color: var(--muted); font-size: 10px; }
     .next-fruit-card strong { display: block; margin-top: 4px; color: var(--ink); font-size: 13px; }
+    .celebration-preview-button { width: 100%; margin-top: 10px; padding: 11px 12px; cursor: pointer; color: var(--paper); background: var(--ink); border: 0; border-radius: 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; transition: opacity 140ms ease, transform 140ms ease; }
+    .celebration-preview-button:hover { opacity: 0.78; }
+    .celebration-preview-button:active { transform: scale(0.98); }
+    .celebration-preview-button:disabled { cursor: not-allowed; opacity: 0.35; }
     .leaderboard { display: grid; gap: 9px; list-style: none; }
     .leaderboard li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 9px; border-bottom: 1px solid var(--line); font-size: 11px; }
     .leaderboard li:last-child { padding-bottom: 0; border-bottom: 0; }
@@ -219,6 +231,7 @@
             <div class="stat-box"><span>个人最高</span><strong id="side-highscore">0</strong></div>
           </div>
           <div class="next-fruit-card"><img id="side-next-fruit" src="./assets/img/circle0.png" alt="下一颗合成球"><div><span>下一等级</span><strong id="side-next-fruit-name">准备中</strong></div></div>
+          <!-- <button id="celebration-preview-button" class="celebration-preview-button" type="button">播放成功动效</button> -->
         </section>
 
         <section class="panel-card">

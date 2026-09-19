@@ -43,6 +43,7 @@ export class GameController {
     this.sounds = new Map();
     this.scoreSubmitted = false;
     this.celebration = null;
+    this.celebrationPreviewTimer = null;
     this.completedGame = false;
 
     const { Engine, Render, Runner, Mouse, MouseConstraint } = Matter;
@@ -147,6 +148,7 @@ export class GameController {
     this.elements.startButton.addEventListener('click', () => {
       if (this.state.state === GAME_STATES.MENU) this.startGame();
     });
+    // this.elements.celebrationPreviewButton.addEventListener('click', () => this.previewCelebration());
 
     Events.on(this.mouseConstraint, 'mousedown', (event) => this.handleMouseDown(event));
     Events.on(this.mouseConstraint, 'mousemove', (event) => this.handleMouseMove(event));
@@ -245,6 +247,20 @@ export class GameController {
     return this.fruitIndexById.get(body?.fruitId);
   }
 
+  getMergeTargetIndex(fruitIndex) {
+    let mergeTo = this.fruits[fruitIndex]?.mergeTo;
+    const skippedFruitIds = new Set(this.difficulty.skipFruitIds || []);
+
+    while (mergeTo && skippedFruitIds.has(mergeTo)) {
+      const skippedIndex = this.fruitIndexById.get(mergeTo);
+      mergeTo = skippedIndex === undefined ? null : this.fruits[skippedIndex]?.mergeTo;
+    }
+
+    return mergeTo === null || mergeTo === undefined
+      ? undefined
+      : this.fruitIndexById.get(mergeTo);
+  }
+
   generateFruitBody(x, y, fruitIndex, extraConfig = {}) {
     const { Bodies } = this.Matter;
     const fruit = this.fruits[fruitIndex];
@@ -337,8 +353,10 @@ export class GameController {
     this.elements.canvas.classList.add('is-playing');
     if (this.elements.difficulty) this.elements.difficulty.disabled = true;
     this.scoreSubmitted = false;
+    this.clearCelebrationPreview();
     this.completedGame = false;
     this.celebration = null;
+    this.elements.canvas.classList.remove('celebrating');
     this.elements.scoreSaveStatus.innerText = '游戏进行中';
     Composite.remove(this.engine.world, this.menuStatics);
     this.gameStatics = this.createGameStatics();
@@ -443,7 +461,7 @@ export class GameController {
   mergeFruits(bodyA, bodyB, fruitIndex) {
     const { Composite } = this.Matter;
     const fruit = this.fruits[fruitIndex];
-    const nextIndex = this.fruitIndexById.get(fruit.mergeTo);
+    const nextIndex = this.getMergeTargetIndex(fruitIndex);
     if (nextIndex === undefined) return;
 
     bodyA.popped = true;
@@ -461,28 +479,23 @@ export class GameController {
     if (this.fruits[nextIndex].mergeTo === null) this.startCelebration(midPosX, midPosY, this.fruits[nextIndex].radius);
   }
 
-  startCelebration(x, y, radius) {
-    if (this.state.state === GAME_STATES.CELEBRATE || this.state.state === GAME_STATES.LOSE) return;
-
-    const { Composite } = this.Matter;
-    if (this.state.previewBall) {
-      Composite.remove(this.engine.world, this.state.previewBall);
-      this.state.previewBall = null;
-    }
-
+  createCelebration(x, y, radius) {
     const colors = ['#ff1744', '#ff8f00', '#ffe600', '#23e65b', '#00d9ff', '#2979ff', '#d500f9', '#ffffff'];
     const bursts = [
       { x: 0, y: 0, delay: 0, color: '#ffffff' },
       { x: -radius * 1.15, y: -radius * 0.42, delay: 280, color: '#ffe600' },
       { x: radius * 1.1, y: -radius * 0.58, delay: 560, color: '#00d9ff' },
+      { x: -radius * 0.75, y: radius * 0.55, delay: 900, color: '#ff1744' },
+      { x: radius * 0.78, y: radius * 0.48, delay: 1180, color: '#d500f9' },
     ];
-    this.celebration = {
+
+    return {
       x,
       y,
       radius,
       bursts,
       startedAt: getNow(),
-      particles: Array.from({ length: 108 }, (_, index) => {
+      particles: Array.from({ length: 180 }, (_, index) => {
         const burst = bursts[index % bursts.length];
         const angle = (Math.PI * 2 * index) / 36 + (random() - 0.5) * 0.32;
         const speed = 170 + random() * 320;
@@ -490,7 +503,7 @@ export class GameController {
           color: colors[index % colors.length],
           gravity: 260 + random() * 170,
           delay: burst.delay + random() * 170,
-          duration: 2200 + random() * 650,
+          duration: 2700 + random() * 1200,
           kind: random() > 0.62 ? 'sparkle' : 'confetti',
           originX: burst.x,
           originY: burst.y,
@@ -502,6 +515,47 @@ export class GameController {
         };
       }),
     };
+  }
+
+  clearCelebrationPreview() {
+    if (this.celebrationPreviewTimer === null) return;
+    window.clearTimeout(this.celebrationPreviewTimer);
+    this.celebrationPreviewTimer = null;
+  }
+
+  previewCelebration() {
+    if (this.state.state === GAME_STATES.CELEBRATE) return;
+
+    this.clearCelebrationPreview();
+    const celebration = this.createCelebration(GAME_CONFIG.width / 2, GAME_CONFIG.height * 0.42, 150);
+    this.celebration = celebration;
+    this.elements.canvas.classList.add('is-playing');
+    this.elements.canvas.classList.add('celebrating');
+    // this.elements.celebrationPreviewButton.innerText = '动效播放中…';
+    this.elements.scoreSaveStatus.innerText = '成功动效演示中';
+    this.celebrationPreviewTimer = window.setTimeout(() => {
+      if (this.celebration !== celebration) return;
+      this.celebration = null;
+      this.celebrationPreviewTimer = null;
+      if (this.state.state === GAME_STATES.MENU) this.elements.canvas.classList.remove('is-playing');
+      this.elements.canvas.classList.remove('celebrating');
+      // this.elements.celebrationPreviewButton.innerText = '播放成功动效';
+      this.elements.scoreSaveStatus.innerText = '请输入昵称后开始';
+    }, CELEBRATION_DURATION);
+  }
+
+  startCelebration(x, y, radius) {
+    if (this.state.state === GAME_STATES.CELEBRATE || this.state.state === GAME_STATES.LOSE) return;
+
+    const { Composite } = this.Matter;
+    if (this.state.previewBall) {
+      Composite.remove(this.engine.world, this.state.previewBall);
+      this.state.previewBall = null;
+    }
+
+    this.clearCelebrationPreview();
+    this.celebration = this.createCelebration(x, y, radius);
+    this.elements.canvas.classList.add('celebrating');
     this.completedGame = true;
     this.state.state = GAME_STATES.CELEBRATE;
     this.elements.endTitle.innerText = '伟子诞生！';
@@ -534,6 +588,7 @@ export class GameController {
   loseGame() {
     if (this.state.state === GAME_STATES.LOSE) return;
     this.state.state = GAME_STATES.LOSE;
+    this.elements.canvas.classList.remove('celebrating');
     this.elements.end.style.display = 'flex';
     if (this.elements.difficulty) this.elements.difficulty.disabled = false;
     this.runner.enabled = false;

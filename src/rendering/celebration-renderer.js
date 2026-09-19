@@ -1,4 +1,4 @@
-export const CELEBRATION_DURATION = 3600;
+export const CELEBRATION_DURATION = 4200;
 
 function now() {
   return typeof performance === 'undefined' ? Date.now() : performance.now();
@@ -16,6 +16,81 @@ function drawSparkle(context, size) {
   context.lineTo(-size * 0.28, -size * 0.28);
   context.closePath();
   context.fill();
+}
+
+function drawCelebrationMessage(context, elapsed) {
+  const text = '恭喜你成为了伟子';
+  const width = context.canvas.width;
+  const height = context.canvas.height;
+  const drift = (elapsed * 0.045) % 180;
+  const colors = ['#ff1744', '#ff8f00', '#ffe600', '#23e65b', '#00d9ff', '#2979ff', '#d500f9'];
+
+  context.save();
+  context.globalAlpha = 0.64;
+  context.translate(width / 2, height / 2);
+  context.rotate(-0.1);
+  context.translate(-width / 2, -height / 2);
+  context.font = '900 21px "Azeret Mono", "PingFang SC", sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.shadowColor = 'rgba(24, 0, 48, 0.32)';
+  context.shadowBlur = 5;
+
+  const columns = Math.ceil(width / 145) + 2;
+  const rows = Math.ceil(height / 58) + 2;
+  for (let row = -1; row < rows; row += 1) {
+    for (let column = -1; column < columns; column += 1) {
+      const x = column * 145 - 30 + drift;
+      const y = row * 58 - 28;
+      const colorIndex = (row + column + Math.floor(elapsed / 180)) % colors.length;
+      context.fillStyle = colors[(colorIndex + colors.length) % colors.length];
+      context.fillText(text, x, y);
+    }
+  }
+  context.restore();
+
+  context.save();
+  context.globalAlpha = 0.96;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = '900 42px "Azeret Mono", "PingFang SC", sans-serif';
+  context.lineWidth = 11;
+  context.strokeStyle = 'rgba(24, 0, 48, 0.72)';
+  context.strokeText(text, width / 2, height * 0.2);
+  const headline = context.createLinearGradient(width * 0.18, 0, width * 0.82, 0);
+  headline.addColorStop(0, '#ffe600');
+  headline.addColorStop(0.25, '#ff1744');
+  headline.addColorStop(0.5, '#ffffff');
+  headline.addColorStop(0.75, '#00d9ff');
+  headline.addColorStop(1, '#d500f9');
+  context.fillStyle = headline;
+  context.fillText(text, width / 2, height * 0.2);
+  context.font = '900 58px "Azeret Mono", "PingFang SC", sans-serif';
+  context.lineWidth = 14;
+  context.strokeText('伟子诞生！', width / 2, height * 0.52);
+  context.fillText('伟子诞生！', width / 2, height * 0.52);
+  context.restore();
+}
+
+function drawCelebrationBeams(context, celebration, elapsed) {
+  const pulse = 0.85 + Math.sin(elapsed * 0.01) * 0.15;
+  const colors = ['#ff1744', '#ffe600', '#00d9ff', '#d500f9'];
+
+  context.save();
+  context.translate(celebration.x, celebration.y);
+  context.globalAlpha = 0.2 * pulse;
+  context.lineWidth = 8;
+  for (let index = 0; index < 28; index += 1) {
+    const angle = (Math.PI * 2 * index) / 28 + elapsed * 0.00035;
+    const inner = celebration.radius * 0.6;
+    const outer = celebration.radius * (2.1 + pulse * 0.8);
+    context.strokeStyle = colors[index % colors.length];
+    context.beginPath();
+    context.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+    context.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+    context.stroke();
+  }
+  context.restore();
 }
 
 export function renderCelebration(context, celebration) {
@@ -90,4 +165,6 @@ export function renderCelebration(context, celebration) {
   });
 
   context.restore();
+  drawCelebrationBeams(context, celebration, elapsed);
+  drawCelebrationMessage(context, elapsed);
 }
