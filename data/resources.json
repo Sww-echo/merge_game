@@ -146,7 +146,8 @@
       "popSound": "assets/pop9.mp3",
       "mergeTo": "circle10",
       "spawnable": false,
-      "rainbow": false
+      "rainbow": false,
+      "animated": true
     },
     {
       "renderMode": "color",

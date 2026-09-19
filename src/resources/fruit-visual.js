@@ -24,6 +24,10 @@ export function isRainbowFruit(fruit) {
   return isColorFruit(fruit) && fruit?.rainbow === true;
 }
 
+export function isAnimatedFruit(fruit) {
+  return isColorFruit(fruit) && (fruit?.animated === true || isRainbowFruit(fruit));
+}
+
 export function getFruitColor(fruit) {
   return fruit?.color || DEFAULT_COLOR;
 }
@@ -50,14 +54,16 @@ export function getFruitPreviewUrl(fruit) {
   const rainbowStops = RAINBOW_STOPS
     .map(([offset, stopColor]) => `<stop offset="${offset}" stop-color="${stopColor}"/>`)
     .join('');
-  const fill = isRainbowFruit(fruit) ? 'url(#rainbow-fill)' : color;
+  const rainbow = isRainbowFruit(fruit);
+  const animated = isAnimatedFruit(fruit);
+  const fill = rainbow ? 'url(#rainbow-fill)' : color;
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
       <style>
         @keyframes rainbow-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes rainbow-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
-        .rainbow-fill { transform-box: fill-box; transform-origin: center; animation: rainbow-spin 4s linear infinite; }
-        .rainbow-ball { transform-box: fill-box; transform-origin: center; animation: rainbow-breathe 1.8s ease-in-out infinite; }
+        .animated-shine { transform-box: fill-box; transform-origin: center; animation: rainbow-spin 4s linear infinite; }
+        .animated-ball { transform-box: fill-box; transform-origin: center; animation: rainbow-breathe 1.8s ease-in-out infinite; }
       </style>
       <defs>
         <linearGradient id="rainbow-fill" x1="10" y1="12" x2="118" y2="116" gradientUnits="userSpaceOnUse">${rainbowStops}</linearGradient>
@@ -67,9 +73,9 @@ export function getFruitPreviewUrl(fruit) {
           <stop offset="1" stop-color="#fff" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <g class="${isRainbowFruit(fruit) ? 'rainbow-ball' : ''}">
-        <circle class="${isRainbowFruit(fruit) ? 'rainbow-fill' : ''}" cx="64" cy="64" r="58" fill="${fill}" stroke="#202124" stroke-opacity=".22" stroke-width="4"/>
-        ${isRainbowFruit(fruit) ? '<circle cx="64" cy="64" r="58" fill="url(#rainbow-shine)"/>' : ''}
+      <g class="${animated ? 'animated-ball' : ''}">
+        <circle cx="64" cy="64" r="58" fill="${fill}" stroke="#202124" stroke-opacity=".22" stroke-width="4"/>
+        ${animated ? '<circle class="animated-shine" cx="64" cy="64" r="58" fill="url(#rainbow-shine)"/>' : ''}
       </g>
       <text x="64" y="71" fill="${textColor}" font-family="${FONT_FAMILY}" font-size="28" font-weight="700" text-anchor="middle">${text}</text>
     </svg>`;
@@ -134,7 +140,8 @@ export function drawColorFruit(context, body) {
   const opacity = body.render.opacity ?? 1;
   const time = typeof performance === 'undefined' ? Date.now() : performance.now();
   const rainbow = isRainbowFruit(fruit);
-  const pulse = rainbow ? 1 + Math.sin(time * 0.0045) * 0.025 : 1;
+  const animated = isAnimatedFruit(fruit);
+  const pulse = animated ? 1 + Math.sin(time * 0.0045) * 0.025 : 1;
 
   context.save();
   context.globalAlpha = opacity;
@@ -145,13 +152,13 @@ export function drawColorFruit(context, body) {
   context.arc(0, 0, radius, 0, Math.PI * 2);
   context.fillStyle = rainbow ? createRainbowGradient(context, radius, time) : getFruitColor(fruit);
   context.fill();
-  if (rainbow) {
+  if (animated) {
     context.beginPath();
     context.arc(0, 0, radius, 0, Math.PI * 2);
     drawRainbowShine(context, radius, time);
   }
   context.lineWidth = Math.max(1.5, radius * 0.06);
-  context.strokeStyle = fruit.strokeColor || (rainbow ? 'rgba(255, 255, 255, 0.72)' : 'rgba(32, 33, 36, 0.18)');
+  context.strokeStyle = fruit.strokeColor || (animated ? 'rgba(255, 255, 255, 0.72)' : 'rgba(32, 33, 36, 0.18)');
   context.stroke();
   context.restore();
 

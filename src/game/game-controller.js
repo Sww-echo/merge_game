@@ -5,6 +5,7 @@ import { GAME_STATES, createGameState } from './game-state.js';
 import { resolveResourceUrl } from '../resources/resource-loader.js';
 import { getFruitPreviewUrl, isColorFruit } from '../resources/fruit-visual.js';
 import { renderColorFruits } from '../rendering/color-fruit-renderer.js';
+import { CELEBRATION_DURATION, renderCelebration } from '../rendering/celebration-renderer.js';
 import { SquashSystem } from '../physics/squash-system.js';
 import { loadScores, savePlayerName, saveScore } from '../services/score-service.js';
 
@@ -25,6 +26,8 @@ const getImpact = (bodyA, bodyB) => {
   return Math.sqrt(velocityX ** 2 + velocityY ** 2);
 };
 
+const getNow = () => (typeof performance === 'undefined' ? Date.now() : performance.now());
+
 export class GameController {
   constructor({ Matter, resources, elements }) {
     this.Matter = Matter;
@@ -39,6 +42,8 @@ export class GameController {
     this.squashSystem = new SquashSystem();
     this.sounds = new Map();
     this.scoreSubmitted = false;
+    this.celebration = null;
+    this.completedGame = false;
 
     const { Engine, Render, Runner, Mouse, MouseConstraint } = Matter;
     this.engine = Engine.create({
@@ -158,6 +163,7 @@ export class GameController {
       this.squashSystem.updateBodies(this.Matter.Composite.allBodies(this.engine.world));
     });
     Events.on(this.render, 'afterRender', () => renderColorFruits(this.render, this.Matter));
+    Events.on(this.render, 'afterRender', () => renderCelebration(this.render.context, this.celebration));
   }
 
   playSound(path) {
@@ -331,6 +337,8 @@ export class GameController {
     this.elements.canvas.classList.add('is-playing');
     if (this.elements.difficulty) this.elements.difficulty.disabled = true;
     this.scoreSubmitted = false;
+    this.completedGame = false;
+    this.celebration = null;
     this.elements.scoreSaveStatus.innerText = '游戏进行中';
     Composite.remove(this.engine.world, this.menuStatics);
     this.gameStatics = this.createGameStatics();
@@ -400,6 +408,8 @@ export class GameController {
   }
 
   handleCollisions(event) {
+    if (this.state.state === GAME_STATES.CELEBRATE || this.state.state === GAME_STATES.LOSE) return;
+
     event.pairs.forEach(({ bodyA, bodyB }) => {
       const fruitA = this.getFruitIndex(bodyA);
       const fruitB = this.getFruitIndex(bodyB);
@@ -447,6 +457,59 @@ export class GameController {
     Composite.add(this.engine.world, this.generateFruitBody(midPosX, midPosY, nextIndex));
     this.addPop(midPosX, midPosY, bodyA.circleRadius);
     this.calculateScore();
+
+    if (this.fruits[nextIndex].mergeTo === null) this.startCelebration(midPosX, midPosY, this.fruits[nextIndex].radius);
+  }
+
+  startCelebration(x, y, radius) {
+    if (this.state.state === GAME_STATES.CELEBRATE || this.state.state === GAME_STATES.LOSE) return;
+
+    const { Composite } = this.Matter;
+    if (this.state.previewBall) {
+      Composite.remove(this.engine.world, this.state.previewBall);
+      this.state.previewBall = null;
+    }
+
+    const colors = ['#ff1744', '#ff8f00', '#ffe600', '#23e65b', '#00d9ff', '#2979ff', '#d500f9', '#ffffff'];
+    const bursts = [
+      { x: 0, y: 0, delay: 0, color: '#ffffff' },
+      { x: -radius * 1.15, y: -radius * 0.42, delay: 280, color: '#ffe600' },
+      { x: radius * 1.1, y: -radius * 0.58, delay: 560, color: '#00d9ff' },
+    ];
+    this.celebration = {
+      x,
+      y,
+      radius,
+      bursts,
+      startedAt: getNow(),
+      particles: Array.from({ length: 108 }, (_, index) => {
+        const burst = bursts[index % bursts.length];
+        const angle = (Math.PI * 2 * index) / 36 + (random() - 0.5) * 0.32;
+        const speed = 170 + random() * 320;
+        return {
+          color: colors[index % colors.length],
+          gravity: 260 + random() * 170,
+          delay: burst.delay + random() * 170,
+          duration: 2200 + random() * 650,
+          kind: random() > 0.62 ? 'sparkle' : 'confetti',
+          originX: burst.x,
+          originY: burst.y,
+          rotation: random() * Math.PI * 2,
+          size: 6 + random() * 9,
+          spin: (random() - 0.5) * 8,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 120,
+        };
+      }),
+    };
+    this.completedGame = true;
+    this.state.state = GAME_STATES.CELEBRATE;
+    this.elements.endTitle.innerText = '伟子诞生！';
+    this.elements.scoreSaveStatus.innerText = '伟子诞生，正在结算…';
+
+    window.setTimeout(() => {
+      if (this.state.state === GAME_STATES.CELEBRATE) this.loseGame();
+    }, CELEBRATION_DURATION);
   }
 
   addPop(x, y, radius) {
@@ -475,6 +538,7 @@ export class GameController {
     if (this.elements.difficulty) this.elements.difficulty.disabled = false;
     this.runner.enabled = false;
     this.saveHighscore();
+    if (this.completedGame) this.elements.endTitle.innerText = '伟子诞生！';
     this.elements.endStatus.innerText = '正在保存成绩…';
     this.elements.scoreSaveStatus.innerText = '正在保存…';
     this.submitScore();

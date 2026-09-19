@@ -1,4 +1,4 @@
-export const DEFAULT_DIFFICULTY = 'hard';
+export const DEFAULT_DIFFICULTY = 'normal';
 
 export const DIFFICULTY_LEVELS = Object.freeze({
   easy: Object.freeze({

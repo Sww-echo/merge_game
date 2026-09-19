@@ -2,6 +2,7 @@ export const GAME_STATES = Object.freeze({
   MENU: 'menu',
   READY: 'ready',
   DROP: 'drop',
+  CELEBRATE: 'celebrate',
   LOSE: 'lose',
 });
 

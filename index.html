@@ -178,7 +178,7 @@
 
     <section class="game-layout">
       <section class="game-card" aria-label="游戏区域">
-        <div class="game-card-header"><span>合成区域</span><span id="difficulty-badge">挑战 · 弹性 0.54</span></div>
+        <div class="game-card-header"><span>合成区域</span><span id="difficulty-badge">标准 · 弹性 0.65</span></div>
         <div id="game-stage">
           <div id="game-canvas">
             <button id="game-start-button" type="button" aria-label="开始游戏"></button>
@@ -208,11 +208,11 @@
           <label class="control-field">游戏难度
           <select id="game-difficulty">
               <option value="easy">轻松</option>
-              <option value="normal">标准</option>
-              <option value="hard" selected>挑战</option>
+              <option value="normal" selected>标准</option>
+              <option value="hard">挑战</option>
           </select>
           </label>
-          <p id="difficulty-note" class="difficulty-note">下落更快，反弹更克制，危险线更敏感。</p>
+          <p id="difficulty-note" class="difficulty-note">保持经典节奏，适合大多数玩家。</p>
           <label class="player-field">玩家名称<input id="player-name" type="text" maxlength="24" placeholder="请输入昵称后开始" autocomplete="nickname" required></label>
           <div class="stat-grid">
             <div class="stat-box"><span>当前分数</span><strong id="side-score">0</strong></div>
