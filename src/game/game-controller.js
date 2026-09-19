@@ -6,7 +6,7 @@ import { resolveResourceUrl } from '../resources/resource-loader.js';
 import { getFruitPreviewUrl, isColorFruit } from '../resources/fruit-visual.js';
 import { renderColorFruits } from '../rendering/color-fruit-renderer.js';
 import { SquashSystem } from '../physics/squash-system.js';
-import { getPlayerProfile, loadScores, savePlayerName, saveScore } from '../services/score-service.js';
+import { loadScores, savePlayerName, saveScore } from '../services/score-service.js';
 
 const random = (() => {
   let seed = Date.now();
@@ -107,12 +107,24 @@ export class GameController {
     Runner.run(this.runner, this.engine);
     Composite.add(this.engine.world, this.menuStatics);
     this.loadHighscore();
-    this.elements.playerName.value = getPlayerProfile().name;
+    let savedName = '';
+    try {
+      savedName = localStorage.getItem('suika-player-name') || '';
+    } catch {
+      savedName = '';
+    }
+    this.elements.playerName.value = savedName;
+    this.elements.playerName.required = true;
+    this.elements.playerName.addEventListener('input', () => {
+      this.elements.playerName.setCustomValidity('');
+    });
     this.elements.playerName.addEventListener('change', () => {
-      this.elements.playerName.value = savePlayerName(this.elements.playerName.value);
+      const name = this.elements.playerName.value.trim();
+      this.elements.playerName.value = name;
+      if (name) savePlayerName(name);
     });
     this.loadLeaderboard();
-    this.elements.scoreSaveStatus.innerText = '等待开始';
+    this.elements.scoreSaveStatus.innerText = '请输入昵称后开始';
     this.setDifficulty(this.difficulty.id);
     if (this.elements.difficulty) {
       this.elements.difficulty.disabled = false;
@@ -302,6 +314,17 @@ export class GameController {
 
   startGame() {
     const { Composite } = this.Matter;
+    const playerName = this.elements.playerName.value.trim();
+    if (!playerName) {
+      this.elements.playerName.setCustomValidity('请输入昵称后再开始游戏');
+      this.elements.playerName.reportValidity();
+      this.elements.scoreSaveStatus.innerText = '请先输入昵称';
+      this.elements.playerName.focus();
+      return;
+    }
+
+    this.elements.playerName.setCustomValidity('');
+    this.elements.playerName.value = savePlayerName(playerName);
     this.setDifficulty(this.elements.difficulty?.value || this.difficulty.id);
     this.playSound(this.resources.assets.clickSound);
     this.elements.startButton.style.display = 'none';
